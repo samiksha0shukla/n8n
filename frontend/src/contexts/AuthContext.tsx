@@ -28,9 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('access_token');
     const savedUser = localStorage.getItem('user');
     
-    if ((token != "undefined" || null) && (savedUser != "undefined" || null)) {
-      console.log('trying to see what is user saved and user ', token , savedUser)
-      setUser(JSON.parse(savedUser));
+    if (token && savedUser && token !== "undefined" && savedUser !== "undefined") {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        // Corrupted data - clear it
+        console.error('Failed to parse user from localStorage:', e);
+        localStorage.removeItem('user');
+        localStorage.removeItem('access_token');
+      }
+    } else {
+      // Clear any partial/corrupted data
+      localStorage.removeItem('user');
+      localStorage.removeItem('access_token');
     }
     setLoading(false);
   }, []);
@@ -39,14 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await signIn(email, password) as any;
     setUser(response.user);
     localStorage.setItem('user', JSON.stringify(response.user));
-    localStorage.setItem('access_token', JSON.stringify(response.access_token));
+    // Note: token is stored in auth.service.ts via setToken
   };
 
   const signup = async (email: string, password: string, name?: string) => {
     const response = await signUp(email, password, name) as any;
-    console.log('response in auth context', response)
-    setUser(response.user);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    // Signup returns {user: {...}} but doesn't include token
+    // User needs to sign in after signup
+    if (response?.user) {
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+    }
   };
 
   const logout = () => {

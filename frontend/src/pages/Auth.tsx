@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { Zap, Loader2 } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Auth() {
 
     try {
       await login(email, password);
-      toast.success('Logged in successfully!');
+      toast.success('Welcome back!');
       navigate('/workflows');
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
@@ -43,6 +44,8 @@ export default function Auth() {
 
     try {
       await signup(email, password, name);
+      // Auto-login after successful signup
+      await login(email, password);
       toast.success('Account created successfully!');
       navigate('/workflows');
     } catch (error: any) {
@@ -53,16 +56,37 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>WorkflowBuilder</CardTitle>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 -right-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      </div>
+      
+      {/* Grid Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `
+            linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px),
+            linear-gradient(hsl(var(--foreground)) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px',
+        }}
+      />
+      
+      <Card className="relative w-full max-w-md border-border/30 bg-card/40 backdrop-blur-xl shadow-2xl">
+        <CardHeader className="text-center pb-2">
+          <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+            <Zap className="w-7 h-7 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-2xl">WorkflowBuilder</CardTitle>
           <CardDescription>Sign in to manage your workflows</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-secondary/50">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             
@@ -76,6 +100,7 @@ export default function Auth() {
                     type="email"
                     placeholder="your@email.com"
                     required
+                    className="bg-background/50 border-border/50"
                   />
                 </div>
                 <div className="space-y-2">
@@ -85,10 +110,18 @@ export default function Auth() {
                     name="password"
                     type="password"
                     required
+                    className="bg-background/50 border-border/50"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Logging in...' : 'Login'}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
               </form>
             </TabsContent>
@@ -102,6 +135,7 @@ export default function Auth() {
                     name="name"
                     type="text"
                     placeholder="Your Name"
+                    className="bg-background/50 border-border/50"
                   />
                 </div>
                 <div className="space-y-2">
@@ -112,6 +146,7 @@ export default function Auth() {
                     type="email"
                     placeholder="your@email.com"
                     required
+                    className="bg-background/50 border-border/50"
                   />
                 </div>
                 <div className="space-y-2">
@@ -121,10 +156,18 @@ export default function Auth() {
                     name="password"
                     type="password"
                     required
+                    className="bg-background/50 border-border/50"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Creating account...' : 'Sign Up'}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
               </form>
             </TabsContent>

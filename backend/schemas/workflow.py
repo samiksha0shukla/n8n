@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, validator
+from datetime import datetime
 from schemas.platform import PlatformType
 from schema_node.email_val import EmailData
 from schema_node.tele_val import TelegramData
@@ -9,26 +10,26 @@ class Node(BaseModel):
     id: str
     platform: PlatformType
     name: str
-    data: Dict
-    credential_id: str
+    data: Dict = {}
+    credential_id: Optional[str] = None
 
     @validator("data")
     def validate_data(cls, v, values):
         platform = values.get("platform")
 
         if platform == PlatformType.TELEGRAM:
-            return TelegramData(**v).dict()
+            return TelegramData(**v).dict() if v else {}
 
         elif platform == PlatformType.EMAIL:
-            return EmailData(**v).dict()
+            return EmailData(**v).dict() if v else {}
 
         elif platform == PlatformType.SLACK:
-            return SlackData(**v).dict()
+            return v  # Pass through for now
 
         elif platform == PlatformType.TRIGGER:
-            return TriggerData(**v).dict()
+            return TriggerData(**v).dict() if v else {}
 
-        raise ValueError("Unsupported platform")
+        return v  # Allow any data for unknown platforms
 
 
 class Connection(BaseModel):
@@ -53,7 +54,10 @@ class WorkflowUpdate(BaseModel):
 class WorkflowResponse(WorkflowBase):
     id: int
     user_id: int
+    webhook_path: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    last_executed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-

@@ -114,15 +114,27 @@ from collections import defaultdict, deque
 from sqlalchemy.orm import Session
 from schemas.workflow import WorkflowResponse
 
-async def execute_workflow(workflow_data: WorkflowResponse, db: Session):
+async def execute_workflow(workflow_data: WorkflowResponse, db: Session, initial_context: dict = None):
+    """
+    Execute a workflow by processing nodes in topological order.
+    
+    Args:
+        workflow_data: The workflow to execute
+        db: Database session
+        initial_context: Optional initial context (e.g., webhook request data)
+    """
     node_map = {
         "trigger": trigger_node,
         "email": email_node,
         "telegram": telegram_node,
     }
 
+    # Handle empty nodes
+    if not workflow_data.nodes:
+        return {"status": "completed", "message": "No nodes to execute"}
+
     nodes = {node.id: node for node in workflow_data.nodes}
-    connections = workflow_data.connections
+    connections = workflow_data.connections or []
 
     # Step 1: Build adjacency list (graph)
     graph = defaultdict(list)
@@ -138,7 +150,9 @@ async def execute_workflow(workflow_data: WorkflowResponse, db: Session):
     if not queue:
         raise ValueError("❌ No start node found (check workflow connections)")
 
-    context = {}
+    # Initialize context with incoming data (webhook payload, etc.)
+    context = initial_context.copy() if initial_context else {}
+    executed_nodes = []
 
     # Step 3: Process nodes in topological order
     while queue:
@@ -146,7 +160,7 @@ async def execute_workflow(workflow_data: WorkflowResponse, db: Session):
         node = nodes[node_id]
 
         node_type = node.platform
-        node_data = dict(node.data)
+        node_data = dict(node.data) if node.data else {}
 
         if getattr(node, "credential_id", None):
             node_data["credential_id"] = node.credential_id
@@ -156,10 +170,17 @@ async def execute_workflow(workflow_data: WorkflowResponse, db: Session):
         handler = node_map.get(node_type)
         if not handler:
             print(f"⚠️ No handler for node platform: {node_type}")
+            executed_nodes.append({"id": node_id, "name": node.name, "status": "skipped"})
             continue
 
-        result = await handler(node_data, context, db)
-        context.update(result or {})
+        try:
+            result = await handler(node_data, context, db)
+            context.update(result or {})
+            executed_nodes.append({"id": node_id, "name": node.name, "status": "success"})
+        except Exception as e:
+            print(f"❌ Error executing node {node.name}: {e}")
+            executed_nodes.append({"id": node_id, "name": node.name, "status": "error", "error": str(e)})
+            raise
 
         # Step 4: Update in-degree of neighbors
         for neighbor in graph[node_id]:
@@ -167,7 +188,11 @@ async def execute_workflow(workflow_data: WorkflowResponse, db: Session):
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
 
-    return context
+    return {
+        "status": "completed",
+        "executed_nodes": executed_nodes,
+        "context": {k: v for k, v in context.items() if k != "webhook"}
+    }
 
 
 if __name__ == "__main__":

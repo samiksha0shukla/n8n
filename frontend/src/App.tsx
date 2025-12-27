@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Workflows from "./pages/Workflows";
 import Credentials from "./pages/Credentials";
 import WorkflowEditor from "./pages/WorkflowEditor";
+import CredentialForm from "./components/credentials/CredentialForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,10 +85,7 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <div className="p-6">
-                      <h1 className="text-2xl font-bold mb-4">Create Credential</h1>
-                      <p className="text-muted-foreground">Credential creation form will be implemented here.</p>
-                    </div>
+                    <CredentialForm />
                   </MainLayout>
                 </ProtectedRoute>
               } 

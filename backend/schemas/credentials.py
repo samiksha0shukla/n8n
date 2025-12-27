@@ -8,7 +8,6 @@ class CredentialBase(BaseModel):
     title: str 
     platform: PlatformType
     data: Dict  
-    user_id: int
 
     @validator("data")
     def validate_data(cls, v, values):
@@ -21,23 +20,21 @@ class CredentialBase(BaseModel):
             return EmailCredential(**v).dict()
 
         elif platform == PlatformType.SLACK:
-            return SlackCredential(**v).dict()
+            # Slack credential validation - just pass through for now
+            return v
 
         raise ValueError("Unsupported platform")
 
 
 class CredentialCreate(CredentialBase):
+    """Schema for creating credentials - user_id is extracted from JWT token"""
     pass
-
-
-# class CredentialUpdate(CredentialBase):
-#     title: str | None=None
-#     platform: str | None=None
-#     data: str | None=None
 
 
 class CredentialResponse(CredentialBase):
     id: int
+    user_id: int
 
     class Config:
         from_attributes = True
+

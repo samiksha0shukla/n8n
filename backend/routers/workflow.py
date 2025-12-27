@@ -18,12 +18,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="signin")
 # Add authentication dependency
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
+        print(f"[DEBUG] Token received: {token[:50]}..." if len(token) > 50 else f"[DEBUG] Token: {token}")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        print(f"[DEBUG] Payload decoded: {payload}")
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            print("[DEBUG] user_id is None!")
             raise HTTPException(status_code=401, detail="Invalid token")
+        user_id = int(user_id_str)  # Convert string back to int
+        print(f"[DEBUG] User ID extracted: {user_id}")
         return user_id
-    except JWTError:
+    except JWTError as e:
+        print(f"[DEBUG] JWTError: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # Create workflow
@@ -39,6 +45,8 @@ def create_workflow(
         raise HTTPException(status_code=404, detail="User not found")
 
     new_workflow = Workflow(**workflow.dict(), user_id=user_id)
+    # Generate unique webhook path
+    new_workflow.webhook_path = new_workflow.generate_webhook_path()
     db.add(new_workflow)
     db.commit()
     db.refresh(new_workflow)
